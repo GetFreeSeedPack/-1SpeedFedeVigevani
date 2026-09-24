@@ -1,0 +1,205 @@
+-- =============================================
+--  AUTO FARM + TP TREADMILL X2 - FEDE VIGEVANI
+--  No se cierra al morir + Minimizar/Ocultar
+-- =============================================
+
+-- 🔧 CONFIGURACIÓN
+local DESTINO_AUTO = Vector3.new(-114.097, 116.937, -2670.991)
+local DESTINO_TREADMILL = Vector3.new(-167.477, -59.998, -979.195) -- ← NUEVA UBICACIÓN
+local DISTANCIA_MAXIMA = 25
+local TIEMPO_ESPERA = 1
+
+local AutoFarmActivo = false
+local Jugador = game:GetService("Players").LocalPlayer
+
+-- 📦 CREAR EL MENÚ DE CONTROL
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "ControlAutoFarm"
+ScreenGui.ResetOnSpawn = false -- ✅ NO DESAPARECE AL MORIR
+ScreenGui.Parent = Jugador:WaitForChild("PlayerGui")
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+-- Contenedor principal
+local Marco = Instance.new("Frame")
+Marco.Name = "MarcoPrincipal"
+Marco.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+Marco.BorderColor3 = Color3.fromRGB(255, 0, 0)
+Marco.Position = UDim2.new(0.02, 0, 0.7, 0)
+Marco.Size = UDim2.new(0, 240, 0, 200)
+Marco.Active = true
+Marco.Draggable = true
+Marco.Parent = ScreenGui
+
+-- Título
+local Titulo = Instance.new("TextLabel")
+Titulo.BackgroundTransparency = 1
+Titulo.Size = UDim2.new(1, -40, 0, 35)
+Titulo.Position = UDim2.new(0, 10, 0, 0)
+Titulo.Font = Enum.Font.GothamBold
+Titulo.Text = "FEDE VIGEVANI"
+Titulo.TextColor3 = Color3.fromRGB(255, 0, 0)
+Titulo.TextSize = 18
+Titulo.TextXAlignment = Enum.TextXAlignment.Center
+Titulo.Parent = Marco
+
+-- Botón MINIMIZAR
+local BtnMinimizar = Instance.new("TextButton")
+BtnMinimizar.Name = "BtnMinimizar"
+BtnMinimizar.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+BtnMinimizar.Position = UDim2.new(1, -35, 0, 5)
+BtnMinimizar.Size = UDim2.new(0, 28, 0, 28)
+BtnMinimizar.Font = Enum.Font.GothamBold
+BtnMinimizar.Text = "−"
+BtnMinimizar.TextColor3 = Color3.fromRGB(255, 255, 255)
+BtnMinimizar.TextSize = 16
+BtnMinimizar.Parent = Marco
+
+-- Estado
+local Estado = Instance.new("TextLabel")
+Estado.BackgroundTransparency = 1
+Estado.Position = UDim2.new(0, 10, 0, 40)
+Estado.Size = UDim2.new(1, -20, 0, 25)
+Estado.Font = Enum.Font.Gotham
+Estado.Text = "Estado: ❌ APAGADO"
+Estado.TextColor3 = Color3.fromRGB(255, 80, 80)
+Estado.TextSize = 14
+Estado.Parent = Marco
+
+-- Botón AUTO FARM
+local BtnAutoFarm = Instance.new("TextButton")
+BtnAutoFarm.BackgroundColor3 = Color3.fromRGB(60, 60, 180)
+BtnAutoFarm.Position = UDim2.new(0, 10, 0, 70)
+BtnAutoFarm.Size = UDim2.new(1, -20, 0, 35)
+BtnAutoFarm.Font = Enum.Font.GothamBold
+BtnAutoFarm.Text = "▶ AUTO FARM"
+BtnAutoFarm.TextColor3 = Color3.fromRGB(255, 255, 255)
+BtnAutoFarm.TextSize = 14
+BtnAutoFarm.Parent = Marco
+
+-- Botón TP TREADMILL X2
+local BtnTP = Instance.new("TextButton")
+BtnTP.BackgroundColor3 = Color3.fromRGB(0, 180, 80)
+BtnTP.Position = UDim2.new(0, 10, 0, 115)
+BtnTP.Size = UDim2.new(1, -20, 0, 35)
+BtnTP.Font = Enum.Font.GothamBold
+BtnTP.Text = "🔄 TP TREADMILL X2"
+BtnTP.TextColor3 = Color3.fromRGB(255, 255, 255)
+BtnTP.TextSize = 14
+BtnTP.Parent = Marco
+
+-- Botón OCULTAR (estilo Chili Hub)
+local BtnOcultar = Instance.new("TextButton")
+BtnOcultar.BackgroundColor3 = Color3.fromRGB(180, 60, 60)
+BtnOcultar.Position = UDim2.new(0, 10, 0, 160)
+BtnOcultar.Size = UDim2.new(1, -20, 0, 30)
+BtnOcultar.Font = Enum.Font.GothamBold
+BtnOcultar.Text = "👁️ OCULTAR MENÚ"
+BtnOcultar.TextColor3 = Color3.fromRGB(255, 255, 255)
+BtnOcultar.TextSize = 13
+BtnOcultar.Parent = Marco
+
+-- Botón pequeño para MOSTRAR cuando se oculta todo
+local BtnMostrar = Instance.new("TextButton")
+BtnMostrar.Name = "BtnMostrar"
+BtnMostrar.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+BtnMostrar.Position = UDim2.new(0.02, 0, 0.7, 0)
+BtnMostrar.Size = UDim2.new(0, 50, 0, 50)
+BtnMostrar.Font = Enum.Font.GothamBold
+BtnMostrar.Text = "F"
+BtnMostrar.TextColor3 = Color3.fromRGB(255, 255, 255)
+BtnMostrar.TextSize = 20
+BtnMostrar.Visible = false
+BtnMostrar.Active = true
+BtnMostrar.Draggable = true
+BtnMostrar.Parent = ScreenGui
+
+-- 🔄 FUNCIÓN PRINCIPAL
+local function RevisarPosicion()
+    while task.wait(TIEMPO_ESPERA) do
+        if not AutoFarmActivo then continue end
+        
+        local Personaje = Jugador.Character
+        if not Personaje then continue end
+        local Root = Personaje:FindFirstChild("HumanoidRootPart")
+        if not Root then continue end
+        
+        local Distancia = (Root.Position - DESTINO_AUTO).Magnitude
+        
+        if Distancia > DISTANCIA_MAXIMA then
+            Root.CFrame = CFrame.new(DESTINO_AUTO)
+            Estado.Text = "Regresando... ✅"
+        else
+            Estado.Text = "En zona ✅"
+        end
+    end
+end
+
+-- 🎮 BOTONES
+BtnAutoFarm.MouseButton1Click:Connect(function()
+    AutoFarmActivo = not AutoFarmActivo
+    
+    if AutoFarmActivo then
+        BtnAutoFarm.Text = "⏹ DETENER"
+        BtnAutoFarm.BackgroundColor3 = Color3.fromRGB(180, 60, 60)
+        Estado.Text = "Estado: ✅ ACTIVO"
+        Estado.TextColor3 = Color3.fromRGB(80, 255, 80)
+        task.spawn(RevisarPosicion)
+    else
+        BtnAutoFarm.Text = "▶ AUTO FARM"
+        BtnAutoFarm.BackgroundColor3 = Color3.fromRGB(60, 60, 180)
+        Estado.Text = "Estado: ❌ APAGADO"
+        Estado.TextColor3 = Color3.fromRGB(255, 80, 80)
+    end
+end)
+
+-- TP a Treadmill X2
+BtnTP.MouseButton1Click:Connect(function()
+    local Personaje = Jugador.Character
+    if not Personaje then return end
+    local Root = Personaje:FindFirstChild("HumanoidRootPart")
+    if not Root then return end
+    
+    Root.CFrame = CFrame.new(DESTINO_TREADMILL)
+    Estado.Text = "Teletransportado ✅"
+end)
+
+-- MINIMIZAR / RESTAURAR
+local Minimizado = false
+BtnMinimizar.MouseButton1Click:Connect(function()
+    Minimizado = not Minimizado
+    if Minimizado then
+        Marco.Size = UDim2.new(0, 240, 0, 45)
+        BtnAutoFarm.Visible = false
+        BtnTP.Visible = false
+        BtnOcultar.Visible = false
+        Estado.Visible = false
+        BtnMinimizar.Text = "+"
+    else
+        Marco.Size = UDim2.new(0, 240, 0, 200)
+        BtnAutoFarm.Visible = true
+        BtnTP.Visible = true
+        BtnOcultar.Visible = true
+        Estado.Visible = true
+        BtnMinimizar.Text = "−"
+    end
+end)
+
+-- OCULTAR / MOSTRAR (estilo Chili Hub)
+local Oculto = false
+BtnOcultar.MouseButton1Click:Connect(function()
+    Oculto = not Oculto
+    if Oculto then
+        Marco.Visible = false
+        BtnMostrar.Visible = true
+    else
+        Marco.Visible = true
+        BtnMostrar.Visible = false
+    end
+end)
+
+-- Botón pequeño para MOSTRAR
+BtnMostrar.MouseButton1Click:Connect(function()
+    Oculto = false
+    Marco.Visible = true
+    BtnMostrar.Visible = false
+end)
