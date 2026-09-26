@@ -1,12 +1,13 @@
 -- =============================================
---  FEDE VIGEVANI - UBICACIÓN ACTUALIZADA
+--  FEDE VIGEVANI - Auto Farm + Salto + COMING SOON
 -- =============================================
 
 -- 🔧 CONFIGURACIÓN
-local DESTINO_AUTO = Vector3.new(-113.323, 115.434, -3249.141) -- ✅ NUEVA
+local DESTINO_AUTO = Vector3.new(-113.323, 115.434, -3249.141)
 local DESTINO_TREADMILL = Vector3.new(-167.477, -59.998, -979.195)
 local DISTANCIA_MAXIMA = 25
 local TIEMPO_ESPERA = 1
+local TIEMPO_SALTO = 0.8 -- cada cuántos segundos salta
 
 local AutoFarmActivo = false
 local Jugador = game:GetService("Players").LocalPlayer
@@ -22,7 +23,7 @@ local Marco = Instance.new("Frame")
 Marco.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 Marco.BorderColor3 = Color3.fromRGB(255, 0, 0)
 Marco.Position = UDim2.new(0.02, 0, 0.7, 0)
-Marco.Size = UDim2.new(0, 240, 0, 200)
+Marco.Size = UDim2.new(0, 240, 0, 235)
 Marco.Active = true
 Marco.Draggable = true
 Marco.Parent = ScreenGui
@@ -94,12 +95,26 @@ BtnTP.TextColor3 = Color3.fromRGB(0, 180, 80)
 BtnTP.TextSize = 13
 BtnTP.Parent = Marco
 
+-- 🆕 BOTÓN COMING SOON
+local BtnComingSoon = Instance.new("TextButton")
+BtnComingSoon.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+BtnComingSoon.BorderColor3 = Color3.fromRGB(180, 160, 0)
+BtnComingSoon.BorderSizePixel = 1
+BtnComingSoon.Position = UDim2.new(0, 10, 0, 160)
+BtnComingSoon.Size = UDim2.new(1, -20, 0, 30)
+BtnComingSoon.Font = Enum.Font.GothamBold
+BtnComingSoon.Text = "⚙️ PRÓXIMA FUNCIÓN — COMING SOON"
+BtnComingSoon.TextColor3 = Color3.fromRGB(180, 160, 0)
+BtnComingSoon.TextSize = 11
+BtnComingSoon.AutoButtonColor = false -- no cambie de color al pasar
+BtnComingSoon.Parent = Marco
+
 -- Botón OCULTAR
 local BtnOcultar = Instance.new("TextButton")
 BtnOcultar.BackgroundColor3 = Color3.fromRGB(20, 10, 10)
 BtnOcultar.BorderColor3 = Color3.fromRGB(180, 60, 60)
 BtnOcultar.BorderSizePixel = 1
-BtnOcultar.Position = UDim2.new(0, 10, 0, 160)
+BtnOcultar.Position = UDim2.new(0, 10, 0, 200)
 BtnOcultar.Size = UDim2.new(1, -20, 0, 30)
 BtnOcultar.Font = Enum.Font.GothamBold
 BtnOcultar.Text = "👁️ OCULTAR MENÚ"
@@ -121,23 +136,30 @@ BtnMostrar.Active = true
 BtnMostrar.Draggable = true
 BtnMostrar.Parent = ScreenGui
 
--- 🔄 FUNCIÓN AUTO FARM
+-- 🔄 FUNCIÓN: Mantener posición + saltar
 local function RevisarPosicion()
     while task.wait(TIEMPO_ESPERA) do
-        if not AutoFarmActivo then continue end
+        if not AutoFarmActivo then return end
         
         local Personaje = Jugador.Character
         if not Personaje then continue end
         local Root = Personaje:FindFirstChild("HumanoidRootPart")
-        if not Root then continue end
+        local Humanoide = Personaje:FindFirstChild("Humanoid")
+        if not Root or not Humanoide then continue end
         
+        -- Regresa si está lejos
         local Distancia = (Root.Position - DESTINO_AUTO).Magnitude
-        
         if Distancia > DISTANCIA_MAXIMA then
             Root.CFrame = CFrame.new(DESTINO_AUTO)
             Estado.Text = "Regresando... ✅"
         else
-            Estado.Text = "Ganando aquí ✅"
+            Estado.Text = "Saltando... ✅"
+        end
+        
+        -- Salta automáticamente
+        task.wait(TIEMPO_SALTO)
+        if AutoFarmActivo and Humanoide then
+            Humanoide.Jump = true
         end
     end
 end
@@ -148,7 +170,7 @@ BtnAutoFarm.MouseButton1Click:Connect(function()
     if AutoFarmActivo then
         BtnAutoFarm.Text = "⏹ DETENER"
         BtnAutoFarm.BackgroundColor3 = Color3.fromRGB(180, 60, 60)
-        Estado.Text = "✅ ACTIVO"
+        Estado.Text = "✅ ACTIVO — Saltando"
         Estado.TextColor3 = Color3.fromRGB(80, 255, 80)
         task.spawn(RevisarPosicion)
     else
@@ -168,6 +190,9 @@ BtnTP.MouseButton1Click:Connect(function()
     Estado.Text = "Teletransportado ✅"
 end)
 
+-- COMING SOON → NO HACE NADA
+-- (no tiene conexión, así que no hace nada al dar clic)
+
 -- MINIMIZAR
 local Minimizado = false
 BtnMinimizar.MouseButton1Click:Connect(function()
@@ -176,13 +201,15 @@ BtnMinimizar.MouseButton1Click:Connect(function()
         Marco.Size = UDim2.new(0, 240, 0, 45)
         BtnAutoFarm.Visible = false
         BtnTP.Visible = false
+        BtnComingSoon.Visible = false
         BtnOcultar.Visible = false
         Estado.Visible = false
         BtnMinimizar.Text = "+"
     else
-        Marco.Size = UDim2.new(0, 240, 0, 200)
+        Marco.Size = UDim2.new(0, 240, 0, 235)
         BtnAutoFarm.Visible = true
         BtnTP.Visible = true
+        BtnComingSoon.Visible = true
         BtnOcultar.Visible = true
         Estado.Visible = true
         BtnMinimizar.Text = "−"
